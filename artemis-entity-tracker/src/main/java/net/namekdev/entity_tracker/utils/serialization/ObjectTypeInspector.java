@@ -17,7 +17,7 @@ public abstract class ObjectTypeInspector {
 
 
 	protected ObjectModelNode inspectOneLevel(Class<?> type) {
-		Field[] fields = ClassReflection.getDeclaredFields(type);
+		/*ield[] fields = ClassReflection.getFields(type);
 
 		ObjectModelNode root = new ObjectModelNode();
 		root.networkType = TYPE_TREE_DESCR_CHILDREN;
@@ -41,13 +41,59 @@ public abstract class ObjectTypeInspector {
 			root.children.addElement(child);
 		}
 
-		return root;
+		return root;*/
+
+		return inspectLevels(type, 0);
 	}
 
 	protected ObjectModelNode inspectMultiLevel(Class<?> type) {
-		// TODO if child.networkType == TYPE_UNKNOWN -> TYPE_TREE -> inspect by recurrency
+		return inspectLevels(type, Integer.MAX_VALUE);
+	}
 
-		throw new UnsupportedOperationException("not yet implemented");
+	protected ObjectModelNode inspectLevels(Class<?> type, int leftLevels) {
+		Field[] fields = ClassReflection.getFields(type);
+
+		ObjectModelNode root = new ObjectModelNode();
+		root.networkType = TYPE_TREE_DESCR_CHILDREN;
+		root.children = new Vector<>(fields.length);
+
+		for (Field field : fields) {
+			Class<?> fieldType = field.getType();
+			ObjectModelNode child = new ObjectModelNode();
+
+			if (fieldType.isArray()) {
+				child.arrayType = NetworkSerialization.determineSimpleType(fieldType);
+
+				if (child.arrayType == TYPE_UNKNOWN && leftLevels > 0) {
+					Class<?> childType = fieldType.getComponentType();
+					child = inspectLevels(childType, leftLevels - 1);
+
+					byte childNetworkType = NetworkSerialization.determineSimpleType(fieldType);
+					if (childNetworkType == TYPE_UNKNOWN) {
+						childNetworkType = TYPE_TREE;
+					}
+
+					child.arrayType = childNetworkType;
+				}
+
+				child.networkType = TYPE_ARRAY;
+				child.isArray = true;
+			}
+			else {
+				child.networkType = NetworkSerialization.determineSimpleType(fieldType);
+
+				if (child.networkType == TYPE_UNKNOWN && leftLevels > 0) {
+					child = inspectLevels(fieldType, leftLevels - 1);
+					child.networkType = TYPE_TREE;
+				}
+			}
+
+			child.name = field.getName();
+
+			root.children.addElement(child);
+		}
+
+		return root;
 	}
 
 
@@ -60,8 +106,6 @@ public abstract class ObjectTypeInspector {
 	}
 
 	public static class MultiLevel extends ObjectTypeInspector {
-		// TODO add max depth
-
 		@Override
 		public ObjectModelNode inspect(Class<?> type) {
 			return inspectMultiLevel(type);
