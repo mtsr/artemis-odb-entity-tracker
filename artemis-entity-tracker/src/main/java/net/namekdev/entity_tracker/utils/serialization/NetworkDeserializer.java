@@ -211,12 +211,12 @@ public class NetworkDeserializer extends NetworkSerialization {
 				node.children.addElement(child);
 			}
 		}
+		else if (isSimpleType(nodeType)) {
+			node.networkType = nodeType;
+		}
 		else if (nodeType == TYPE_ARRAY) {
 			node.isArray = true;
 			// TODO
-		}
-		else if (isSimpleType(nodeType)) {
-			node.networkType = nodeType;
 		}
 		else {
 			throw new RuntimeException("unsupported type: " + nodeType);
@@ -226,13 +226,35 @@ public class NetworkDeserializer extends NetworkSerialization {
 	}
 
 	public ValueTree readObject(ObjectModelNode model) {
-		if (model.isArray) {
-			// TODO read array?
+		checkType(TYPE_TREE);
+		ValueTree root = (ValueTree) readRawObject(model);
 
+		return root;
+	}
+
+	protected Object readRawObject(ObjectModelNode model) {
+		if (model.children != null) {
+			int n = model.children.size();
+			ValueTree tree = new ValueTree();
+			tree.values = new Object[n];
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode child = model.children.get(i);
+				tree.values[i] = readRawObject(child);
+			}
+
+			return tree;
 		}
-//		else if (model.)
-		return null;
-		// TODO
+		else if (isSimpleType(model.networkType)) {
+			return readSomething();
+		}
+		else if (model.isArray) {
+			// TODO read array?
+			throw new RuntimeException("not yet implemented");
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + model.networkType);
+		}
 	}
 
 	protected int readRawInt() {

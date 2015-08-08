@@ -46,20 +46,21 @@ public class SerializeCustomClassTest {
 		int id = 198;
 
 		serializer.addObjectDescription(model, id);
-//		serializer.addObject(model, vector);
+		serializer.addObject(model, vector);
 
 		byte[] buffer = serializer.getResult().buffer;
 		deserializer.setSource(buffer, 0, serializer.getResult().size);
 
 		ObjectModelNode model2 = deserializer.readObjectDescription();
-//		ValueTree result = deserializer.readObject(model);
-
 		model.rootId = id;
 		assertEquals(model, model2);
-//		assertEquals(3, result.values.length);
-//		assertEquals(vector.x, result.values[0]);
-//		assertEquals(vector.y, result.values[0]);
-//		assertEquals(vector.z, result.values[2]);
+
+		ValueTree result = deserializer.readObject(model2);
+
+		assertEquals(3, result.values.length);
+		assertEquals(vector.x, result.values[0]);
+		assertEquals(vector.y, result.values[1]);
+		assertEquals(vector.z, result.values[2]);
 	}
 
 	@Test

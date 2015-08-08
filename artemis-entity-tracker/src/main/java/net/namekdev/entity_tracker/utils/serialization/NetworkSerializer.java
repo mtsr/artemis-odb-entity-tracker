@@ -2,6 +2,8 @@ package net.namekdev.entity_tracker.utils.serialization;
 
 import java.util.BitSet;
 
+import net.namekdev.entity_tracker.utils.ReflectionUtils;
+
 public class NetworkSerializer extends NetworkSerialization {
 	private byte[] _ourBuffer;
 	private byte[] _buffer;
@@ -257,9 +259,32 @@ public class NetworkSerializer extends NetworkSerialization {
 	}
 
 	public NetworkSerializer addObject(ObjectModelNode model, Object object) {
-		// TODO
+		addRawByte(TYPE_TREE);
+		addRawObject(model, object);
 
 		return this;
+	}
+
+	protected void addRawObject(ObjectModelNode model, Object object) {
+		if (model.children != null) {
+			int n = model.children.size();
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode child = model.children.get(i);
+				Object childObject = ReflectionUtils.getHiddenFieldValue(object.getClass(), child.name, object);
+
+				addRawObject(child, childObject);
+			}
+		}
+		else if (isSimpleType(model.networkType)) {
+			addSomething(object);
+		}
+		else if (model.isArray) {
+			// TODO
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + model.networkType);
+		}
 	}
 
 	public SerializeResult getResult() {
