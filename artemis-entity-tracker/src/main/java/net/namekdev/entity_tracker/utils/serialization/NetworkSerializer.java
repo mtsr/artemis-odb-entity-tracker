@@ -216,6 +216,52 @@ public class NetworkSerializer extends NetworkSerialization {
 		return this;
 	}
 
+	public NetworkSerializer addObjectDescription(ObjectModelNode model, int modelId) {
+		_buffer[_pos++] = TYPE_TREE_DESCR;
+		addRawInt(modelId);
+		addRawObjectDescription(model);
+
+		return this;
+	}
+
+	protected void addRawObjectDescription(ObjectModelNode model) {
+		addString(model.name);
+
+		if (model.isArray) {
+			addRawByte(TYPE_ARRAY);
+
+			if (isSimpleType(model.arrayType)) {
+				addRawByte(model.arrayType);
+			}
+			else {
+				// TODO ?
+			}
+		}
+		else if (model.children != null) {
+			int n = model.children.size();
+
+			addRawByte(TYPE_TREE_DESCR_CHILDREN);
+			addRawInt(n);
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode node = model.children.get(i);
+				addRawObjectDescription(node);
+			}
+		}
+		else if (isSimpleType(model.networkType)) {
+			addRawByte(model.networkType);
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + model.networkType);
+		}
+	}
+
+	public NetworkSerializer addObject(ObjectModelNode model, Object object) {
+		// TODO
+
+		return this;
+	}
+
 	public SerializeResult getResult() {
 //		_buffer[_pos++] = PACKET_END;
 
@@ -223,6 +269,7 @@ public class NetworkSerializer extends NetworkSerialization {
 			? _serializeResult.setup(_buffer, _pos)
 			: new SerializeResult(_buffer, _pos);
 	}
+
 
 
 	public static class SerializeResult {

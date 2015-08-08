@@ -1,6 +1,7 @@
 package net.namekdev.entity_tracker.utils.serialization;
 
 import java.util.BitSet;
+import java.util.Vector;
 
 public class NetworkDeserializer extends NetworkSerialization {
 	private byte[] _source;
@@ -184,6 +185,54 @@ public class NetworkDeserializer extends NetworkSerialization {
 		else {
 			throw new IllegalArgumentException("Can't serialize type: " + type);
 		}
+	}
+
+	public ObjectModelNode readObjectDescription() {
+		checkType(TYPE_TREE_DESCR);
+		int modelId = readRawInt();
+		ObjectModelNode root = readRawObjectDescription();
+		root.rootId = modelId;
+
+		return root;
+	}
+
+	private ObjectModelNode readRawObjectDescription() {
+		ObjectModelNode node = new ObjectModelNode();
+		node.name = readString();
+		byte nodeType = readRawByte();
+		node.networkType = nodeType;
+
+		if (nodeType == TYPE_TREE_DESCR_CHILDREN) {
+			int n = readRawInt();
+			node.children = new Vector<>(n);
+
+			for (int i = 0; i < n; ++i) {
+				ObjectModelNode child = readRawObjectDescription();
+				node.children.addElement(child);
+			}
+		}
+		else if (nodeType == TYPE_ARRAY) {
+			node.isArray = true;
+			// TODO
+		}
+		else if (isSimpleType(nodeType)) {
+			node.networkType = nodeType;
+		}
+		else {
+			throw new RuntimeException("unsupported type: " + nodeType);
+		}
+
+		return node;
+	}
+
+	public ValueTree readObject(ObjectModelNode model) {
+		if (model.isArray) {
+			// TODO read array?
+
+		}
+//		else if (model.)
+		return null;
+		// TODO
 	}
 
 	protected int readRawInt() {
